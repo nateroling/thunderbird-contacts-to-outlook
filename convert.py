@@ -74,7 +74,7 @@ def process(column_map, row):
 with open(infile, 'r') as f, open(outfile, 'w') as o:
 
     reader = csv.reader(f)
-    writer = csv.writer(o)
+    writer = csv.writer(o, quoting=csv.QUOTE_ALL)
 
     replacements = get_replacements()
     column_map = []

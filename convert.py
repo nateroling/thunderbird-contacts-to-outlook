@@ -1,97 +1,103 @@
 import sys
 import csv
 
-if len(sys.argv) != 3:
-    print "USAGE: convert.py INPUT_FILENAME OUTPUT_FILENAME"
-else:
-    infile = sys.argv[1]
-    outfile = sys.argv[2]
+# Columns that will be written to the output csv.
+OUTLOOK_COLUMNS = [ 'First Name', 'Last Name', 'Name',
+        'E-mail Address', 'E-mail 2 Address',
+        'Business Phone', 'Home Phone', 'Business Fax',
+        'Pager', 'Mobile Phone',
+        'Home Street 1', 'Home Street 2', 'Home City',
+        'Home State', 'Home Postal Code', 'Home Country/Region',
+        'Business Street', 'Business Street 2', 'Business City',
+        'Business State', 'Business Postal Code', 'Business Country/Region',
+        'Job Title', 'Department', 'Company', 'Web Page',
+        'User 1', 'User 2', 'User 3', 'User 4', 'Notes']
 
-FIELDS = """
-First Name : @
-Last Name : @
-Display Name : Name
-Nickname
-Primary Email : E-mail Address
-Secondary Email : E-mail 2 Address
-Screen Name
-Work Phone : Business Phone
-Home Phone : Home Phone
-Fax Number : Business Fax
-Pager Number : Pager
-Mobile Number : Mobile Phone
-Home Address : Home Street 1
-Home Address 2 : Home Street 2
-Home City : @
-Home State : @
-Home ZipCode : Home Postal Code
-Home Country : Home Country/Region
-Work Address : Business Street
-Work Address 2 : Business Street 2
-Work City : Business City
-Work State : Business State
-Work ZipCode : Business Postal Code
-Work Country : Business Country/Region
-Job Title : @
-Department : @
-Organization : Company
-Web Page 1 : Web Page
-Web Page 2
-Birth Year
-Birth Month
-Birth Day
-Custom 1 : User 1
-Custom 2 : User 2
-Custom 3 : User 3
-Custom 4 : User 4
-Notes : Notes
-"""
+def convert(infile, outfile):
+    """
+    Convert a Thunderbird contacts csv file to one that can be imported into
+    Outlook.
 
-def get_replacements():
-    replacements = {}
-    for field in FIELDS.split("\n"):
-        pair = [x.strip() for x in field.split(":")]
-        if len(pair) == 2:
-            original, replacement = pair
-            if replacement == "@":
-                replacement = original
-            replacements[original] = replacement
-    return replacements
+    The Thunderbird file must have column headers.
+    """
+    with open(infile, 'r') as i, open(outfile, 'w') as o:
+        reader = csv.reader(i)
+        writer = csv.writer(o, quoting=csv.QUOTE_ALL)
 
+        thunderbird_columns = reader.next()
+        writer.writerow(OUTLOOK_COLUMNS)
 
-headers = []
+        # Convert and write each row.
+        for row in reader:
+            input_entry = dict(zip(thunderbird_columns, row))
+            output_entry = convert_entry(input_entry)
+            output_values = [output_entry.get(k, "") for k in OUTLOOK_COLUMNS]
+            writer.writerow(output_values)
 
-def process(column_map, row):
-    output = []
-    for idx, value in enumerate(row):
-        if value:
-            if idx in column_map:
-                output.append(value.strip())
-            else:
-                print "Ignored: %s = %s" % (headers[idx], value)
-    return output
+def convert_entry(thunderbird):
+    """
+    Convert a single entry from a Thunderbird csv file.
+    Entry must be a dict of "Column Name": "Value"
+    Nickname and Screen Name are ignored unless no other name is found.
+    Web Page 2 is ignored.
+    """
+    outlook = {}
 
-with open(infile, 'r') as f, open(outfile, 'w') as o:
+    if thunderbird["Display Name"]:
+        outlook["Name"] = thunderbird["Display Name"]
+    elif thunderbird["First Name"] or thunderbird["Last Name"]:
+        pass # Outlook will use First/Last Name
+    elif thunderbird["Screen Name"]:
+        outlook["Name"] = thunderbird["Screen Name"]
+    elif thunderbird["Nickname"]:
+        outlook["Name"] = thunderbird["Nickname"]
+    elif thunderbird["Organization"]:
+        outlook["Name"] = thunderbird["Organization"]
+    elif thunderbird["Primary Email"]:
+        outlook["Name"] = thunderbird["Primary Email"]
 
-    reader = csv.reader(f)
-    writer = csv.writer(o, quoting=csv.QUOTE_ALL)
+    outlook["Birthday"] = ("%s-%s-%s" % (
+            thunderbird["Birth Year"],
+            thunderbird["Birth Month"],
+            thunderbird["Birth Day"])).lstrip("-")
 
-    replacements = get_replacements()
-    column_map = []
+    outlook["First Name"] = thunderbird["First Name"]
+    outlook["Last Name"] = thunderbird["Last Name"]
+    outlook["E-mail Address"] = thunderbird["Primary Email"]
+    outlook["E-mail 2 Address"] = thunderbird["Secondary Email"]
+    outlook["Business Phone"] = thunderbird["Work Phone"]
+    outlook["Home Phone"] = thunderbird["Home Phone"]
+    outlook["Business Fax"] = thunderbird["Fax Number"]
+    outlook["Pager"] = thunderbird["Pager Number"]
+    outlook["Mobile Phone"] = thunderbird["Mobile Number"]
+    outlook["Home Street 1"] = thunderbird["Home Address"]
+    outlook["Home Street 2"] = thunderbird["Home Address 2"]
+    outlook["Home City"] = thunderbird["Home City"]
+    outlook["Home State"] = thunderbird["Home State"]
+    outlook["Home Postal Code"] = thunderbird["Home ZipCode"]
+    outlook["Home Country/Region"] = thunderbird["Home Country"]
+    outlook["Business Street"] = thunderbird["Work Address"]
+    outlook["Business Street 2"] = thunderbird["Work Address 2"]
+    outlook["Business City"] = thunderbird["Work City"]
+    outlook["Business State"] = thunderbird["Work State"]
+    outlook["Business Postal Code"] = thunderbird["Work ZipCode"]
+    outlook["Business Country/Region"] = thunderbird["Work Country"]
+    outlook["Job Title"] = thunderbird["Job Title"]
+    outlook["Department"] = thunderbird["Department"]
+    outlook["Company"] = thunderbird["Organization"]
+    outlook["Web Page"] = thunderbird["Web Page 1"]
+    outlook["User 1"] = thunderbird["Custom 1"]
+    outlook["User 2"] = thunderbird["Custom 2"]
+    outlook["User 3"] = thunderbird["Custom 3"]
+    outlook["User 4"] = thunderbird["Custom 4"]
+    outlook["Notes"] = thunderbird["Notes"]
+    return outlook
 
-    indexes = []
-    header_output = []
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print "USAGE: convert.py INPUT_FILENAME OUTPUT_FILENAME"
+    else:
+        infile = sys.argv[1]
+        outfile = sys.argv[2]
+    convert(infile, outfile)
 
-    headers = reader.next()
-    for hidx, header in enumerate(headers):
-        if header in replacements:
-            header_output.append(replacements[header])
-            column_map.append(hidx)
-
-    writer.writerow(header_output)
-
-    for rowidx, row in enumerate(reader):
-        if rowidx == 0:
-            pass
-        else:
-            writer.writerow(process(column_map, row))

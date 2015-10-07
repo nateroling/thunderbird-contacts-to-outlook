@@ -1,0 +1,6 @@
+Importing contacts from Thunderbird into Outlook is way harder than it
+should be. This script will take a CSV file exported from Thunderbird
+and massage it into one that will import cleanly into Outlook.
+
+Usage: python convert.py <input.csv> <output.csv>
+

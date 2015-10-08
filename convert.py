@@ -38,28 +38,14 @@ def convert_entry(thunderbird):
     """
     Convert a single entry from a Thunderbird csv file.
     Entry must be a dict of "Column Name": "Value"
-    Nickname and Screen Name are ignored unless no other name is found.
-    Web Page 2 is ignored.
+
+    The following fields from Thunderbird will not be imported:
+    Display Name
+    Nickname
+    Screen Name
+    Web Page 2
     """
     outlook = {}
-
-    if thunderbird["Display Name"]:
-        outlook["Name"] = thunderbird["Display Name"]
-    elif thunderbird["First Name"] or thunderbird["Last Name"]:
-        pass # Outlook will use First/Last Name
-    elif thunderbird["Screen Name"]:
-        outlook["Name"] = thunderbird["Screen Name"]
-    elif thunderbird["Nickname"]:
-        outlook["Name"] = thunderbird["Nickname"]
-    elif thunderbird["Organization"]:
-        outlook["Name"] = thunderbird["Organization"]
-    elif thunderbird["Primary Email"]:
-        outlook["Name"] = thunderbird["Primary Email"]
-
-    outlook["Birthday"] = ("%s-%s-%s" % (
-            thunderbird["Birth Year"],
-            thunderbird["Birth Month"],
-            thunderbird["Birth Day"])).lstrip("-")
 
     outlook["First Name"] = thunderbird["First Name"]
     outlook["Last Name"] = thunderbird["Last Name"]
@@ -91,6 +77,13 @@ def convert_entry(thunderbird):
     outlook["User 3"] = thunderbird["Custom 3"]
     outlook["User 4"] = thunderbird["Custom 4"]
     outlook["Notes"] = thunderbird["Notes"]
+
+    # Format Birthday.
+    outlook["Birthday"] = ("%s-%s-%s" % (
+            thunderbird["Birth Year"],
+            thunderbird["Birth Month"],
+            thunderbird["Birth Day"])).lstrip("-")
+
     return outlook
 
 if __name__ == "__main__":

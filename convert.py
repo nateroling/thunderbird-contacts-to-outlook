@@ -13,26 +13,28 @@ OUTLOOK_COLUMNS = [ 'First Name', 'Last Name', 'Name',
         'Job Title', 'Department', 'Company', 'Web Page',
         'User 1', 'User 2', 'User 3', 'User 4', 'Notes']
 
-def convert(infile, outfile):
+def convert(infiles):
     """
     Convert a Thunderbird contacts csv file to one that can be imported into
     Outlook.
 
     The Thunderbird file must have column headers.
     """
-    with open(infile, 'r') as i, open(outfile, 'w') as o:
-        reader = csv.reader(i)
-        writer = csv.writer(o, quoting=csv.QUOTE_ALL)
+    writer = csv.writer(sys.stdout, quoting=csv.QUOTE_ALL)
+    writer.writerow(OUTLOOK_COLUMNS)
 
-        thunderbird_columns = reader.next()
-        writer.writerow(OUTLOOK_COLUMNS)
+    for infile in infiles:
+        with open(infile, 'r') as i:
+            reader = csv.reader(i)
+            thunderbird_columns = reader.next()
 
-        # Convert and write each row.
-        for row in reader:
-            input_entry = dict(zip(thunderbird_columns, row))
-            output_entry = convert_entry(input_entry)
-            output_values = [output_entry.get(k, "") for k in OUTLOOK_COLUMNS]
-            writer.writerow(output_values)
+            # Convert and write each row.
+            for row in reader:
+                input_entry = dict(zip(thunderbird_columns, row))
+                output_entry = convert_entry(input_entry)
+                output_values = [output_entry.get(k, "") for k in OUTLOOK_COLUMNS]
+                writer.writerow(output_values)
+
 
 def convert_entry(thunderbird):
     """
@@ -87,10 +89,9 @@ def convert_entry(thunderbird):
     return outlook
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print "USAGE: convert.py INPUT_FILENAME OUTPUT_FILENAME"
+    if len(sys.argv) < 2:
+        print "USAGE: convert.py INPUT_FILENAMES"
     else:
-        infile = sys.argv[1]
-        outfile = sys.argv[2]
-    convert(infile, outfile)
+        infiles = sys.argv[1:]
+        convert(infiles)
 
